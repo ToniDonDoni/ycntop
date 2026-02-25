@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .hn_client import HNClient
-from .llm_interest import DEFAULT_MAX_CALLS, get_llm_budget_state, reset_llm_budget
+from .llm_interest import DEFAULT_MAX_CALLS, get_llm_budget_state, reset_llm_budget, set_llm_insecure_ssl
 from .models import ArticleContent, HNStory, RankedStory
 from .ranker import rank_stories
 from .report import ReportBuilder
@@ -20,10 +20,12 @@ def run_pipeline(
     hours: int,
     top_n: int,
     *,
+    insecure_llm_ssl: bool = False,
     client: Optional[HNClient] = None,
     report_builder: Optional[ReportBuilder] = None,
     now: Optional[datetime] = None,
 ) -> List[RankedStory]:
+    set_llm_insecure_ssl(insecure_llm_ssl)
     reset_llm_budget(DEFAULT_MAX_CALLS)
     client = client or HNClient()
     run_time = now or datetime.now(timezone.utc)
@@ -48,6 +50,11 @@ def build_parser() -> argparse.ArgumentParser:
     run_cmd = sub.add_parser("run", help="Execute the YC pipeline")
     run_cmd.add_argument("--hours", type=int, default=24)
     run_cmd.add_argument("--top", type=int, default=5)
+    run_cmd.add_argument(
+        "--insecure-llm-ssl",
+        action="store_true",
+        help="Disable TLS certificate verification only for OpenAI LLM requests in this run.",
+    )
     return parser
 
 
@@ -55,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command == "run":
-        run_pipeline(hours=args.hours, top_n=args.top)
+        run_pipeline(hours=args.hours, top_n=args.top, insecure_llm_ssl=args.insecure_llm_ssl)
         return 0
     parser.print_help()
     return 1

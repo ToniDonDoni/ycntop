@@ -15,10 +15,11 @@ DEFAULT_MODEL = "gpt-4.1-mini"
 # Empirical cap: ~24h HN runs were around this range, so 110 avoids early cutoffs.
 DEFAULT_MAX_CALLS = 110
 LOGGER = logging.getLogger(__name__)
-INSECURE_SSL_CONTEXT = ssl._create_unverified_context()
 _budget_max_calls = DEFAULT_MAX_CALLS
 _budget_calls_used = 0
 _budget_limit_reached = False
+_llm_insecure_ssl = False
+_llm_ssl_context: Optional[ssl.SSLContext] = None
 
 
 @dataclass
@@ -27,6 +28,33 @@ class LLMInterestResult:
     reason: str
     status: str
     model: str
+
+
+def set_llm_insecure_ssl(enabled: bool) -> None:
+    """Configure TLS verification mode for OpenAI requests in this process."""
+
+    global _llm_insecure_ssl, _llm_ssl_context
+    _llm_insecure_ssl = bool(enabled)
+    _llm_ssl_context = None
+
+
+def _build_ssl_context(*, insecure: bool) -> ssl.SSLContext:
+    if insecure:
+        LOGGER.warning("Insecure TLS mode is enabled for OpenAI calls; certificate verification is disabled.")
+        return ssl._create_unverified_context()
+    try:
+        import certifi  # type: ignore
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
+
+
+def _get_llm_ssl_context() -> ssl.SSLContext:
+    global _llm_ssl_context
+    if _llm_ssl_context is None:
+        _llm_ssl_context = _build_ssl_context(insecure=_llm_insecure_ssl)
+    return _llm_ssl_context
 
 
 def reset_llm_budget(max_calls: int = DEFAULT_MAX_CALLS) -> None:
@@ -83,7 +111,7 @@ def score_title_with_llm(title: str) -> LLMInterestResult:
     )
 
     try:
-        with urlopen(req, timeout=25, context=INSECURE_SSL_CONTEXT) as resp:
+        with urlopen(req, timeout=25, context=_get_llm_ssl_context()) as resp:
             body = json.loads(resp.read().decode("utf-8", errors="ignore"))
     except HTTPError as exc:
         try:

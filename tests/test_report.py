@@ -74,3 +74,21 @@ def test_report_builder_shows_llm_limit_note(tmp_path: Path):
     )
     html = (tmp_path / f"top10_{run_date.strftime('%Y-%m-%d')}.html").read_text()
     assert "LLM call limit reached (110/110)" in html
+
+
+def test_report_builder_escapes_untrusted_html_fields(tmp_path: Path):
+    builder = ReportBuilder(output_dir=tmp_path)
+    ranked_item = _ranked(1)
+    ranked_item.story.title = '<img src=x onerror=alert("xss-title")>'
+    ranked_item.story.url = 'https://example.com/news?q="><script>alert(1)</script>'
+    ranked_item.article.summary = '<script>alert("xss-summary")</script>'
+    ranked_item.why_selected = ['<b onclick="alert(2)">reason</b>']
+    run_date = datetime(2024, 1, 2, tzinfo=timezone.utc)
+    builder.render([ranked_item], run_date=run_date, requested_top=5)
+    html = (tmp_path / f"top5_{run_date.strftime('%Y-%m-%d')}.html").read_text()
+
+    assert "<script>alert" not in html
+    assert "&lt;img src=x onerror=alert(&quot;xss-title&quot;)&gt;" in html
+    assert "&lt;script&gt;alert(&quot;xss-summary&quot;)&lt;/script&gt;" in html
+    assert "&lt;b onclick=&quot;alert(2)&quot;&gt;reason&lt;/b&gt;" in html
+    assert "https://example.com/news?q=&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;" in html

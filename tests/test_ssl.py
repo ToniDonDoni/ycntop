@@ -1,6 +1,7 @@
 import json
 
 from src import article_fetcher
+from src import llm_interest
 from src.hn_client import HNClient
 
 
@@ -58,3 +59,71 @@ def test_article_fetcher_uses_ssl_context_in_urlopen(monkeypatch):
 
     assert body == "<html>ok</html>"
     assert captured["context"] is sentinel_context
+
+
+def test_llm_interest_uses_verified_ssl_by_default(monkeypatch):
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"output_text":"{\\"score\\": 5, \\"reason\\": \\"good\\"}"}'
+
+    calls = {}
+    sentinel_context = object()
+    llm_interest.set_llm_insecure_ssl(False)
+
+    def fake_build_ssl_context(*, insecure):
+        calls["insecure"] = insecure
+        return sentinel_context
+
+    def fake_urlopen(request, timeout, context):
+        calls["context"] = context
+        return _Resp()
+
+    monkeypatch.setattr(llm_interest, "_build_ssl_context", fake_build_ssl_context)
+    monkeypatch.setattr(llm_interest, "urlopen", fake_urlopen)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    result = llm_interest.score_title_with_llm("A title")
+
+    assert result.status == "ok"
+    assert calls["insecure"] is False
+    assert calls["context"] is sentinel_context
+
+
+def test_llm_interest_uses_unverified_ssl_when_enabled(monkeypatch):
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"output_text":"{\\"score\\": 5, \\"reason\\": \\"good\\"}"}'
+
+    calls = {}
+    sentinel_context = object()
+    llm_interest.set_llm_insecure_ssl(True)
+
+    def fake_build_ssl_context(*, insecure):
+        calls["insecure"] = insecure
+        return sentinel_context
+
+    def fake_urlopen(request, timeout, context):
+        calls["context"] = context
+        return _Resp()
+
+    monkeypatch.setattr(llm_interest, "_build_ssl_context", fake_build_ssl_context)
+    monkeypatch.setattr(llm_interest, "urlopen", fake_urlopen)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    result = llm_interest.score_title_with_llm("Another title")
+
+    assert result.status == "ok"
+    assert calls["insecure"] is True
+    assert calls["context"] is sentinel_context

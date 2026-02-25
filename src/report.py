@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from html import escape
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -45,14 +46,17 @@ class ReportBuilder:
     ) -> str:
         rows = []
         for item in ranked:
-            article_link = f"<a href=\"{item.story.url}\" target=\"_blank\">{item.story.title}</a>"
+            safe_url = escape(item.story.url, quote=True)
+            safe_title = escape(item.story.title)
+            safe_summary = escape(item.article.summary)
+            article_link = f"<a href=\"{safe_url}\" target=\"_blank\" rel=\"noopener noreferrer\">{safe_title}</a>"
             hn_link = f"<a href=\"https://news.ycombinator.com/item?id={item.story.id}\" target=\"_blank\">HN Thread</a>"
-            bullets = "".join(f"<li>{bullet}</li>" for bullet in item.why_selected)
+            bullets = "".join(f"<li>{escape(bullet)}</li>" for bullet in item.why_selected)
             rows.append(
                 f"<article>"
                 f"<h2>{item.rank}. {article_link}</h2>"
                 f"<p>Score: {item.score.total:.2f} | {hn_link}</p>"
-                f"<p>{item.article.summary}</p>"
+                f"<p>{safe_summary}</p>"
                 f"<p><strong>Why selected:</strong></p><ul>{bullets}</ul>"
                 f"</article>"
             )
