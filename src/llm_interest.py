@@ -21,6 +21,7 @@ _budget_calls_used = 0
 _budget_limit_reached = False
 _llm_insecure_ssl = False
 _llm_ssl_context: Optional[ssl.SSLContext] = None
+_run_expected_calls: Optional[int] = None
 
 
 @dataclass
@@ -59,10 +60,16 @@ def _get_llm_ssl_context() -> ssl.SSLContext:
 
 
 def reset_llm_budget(max_calls: int = DEFAULT_MAX_CALLS) -> None:
-    global _budget_max_calls, _budget_calls_used, _budget_limit_reached
+    global _budget_max_calls, _budget_calls_used, _budget_limit_reached, _run_expected_calls
     _budget_max_calls = max(0, int(max_calls))
     _budget_calls_used = 0
     _budget_limit_reached = False
+    _run_expected_calls = None
+
+
+def set_llm_expected_calls(expected_calls: int) -> None:
+    global _run_expected_calls
+    _run_expected_calls = max(0, min(int(expected_calls), _budget_max_calls))
 
 
 def get_llm_budget_state() -> Dict[str, int]:
@@ -116,7 +123,7 @@ def score_title_with_llm(title: str) -> LLMInterestResult:
         model,
         LLM_TIMEOUT_SECONDS,
         _budget_calls_used,
-        _budget_max_calls,
+        _run_expected_calls if _run_expected_calls is not None else _budget_max_calls,
         title,
     )
 
@@ -156,6 +163,15 @@ def score_title_with_llm(title: str) -> LLMInterestResult:
 
     score = _clamp_score(parsed.get("score", 0))
     reason = str(parsed.get("reason", "")).strip() or "LLM score without explanation"
+    LOGGER.info(
+        "OpenAI LLM scoring response received (model=%s, timeout=%ss, call=%s/%s, score=%.3f) for title %r",
+        model,
+        LLM_TIMEOUT_SECONDS,
+        _budget_calls_used,
+        _run_expected_calls if _run_expected_calls is not None else _budget_max_calls,
+        score,
+        title,
+    )
     return LLMInterestResult(score=score, reason=reason, status="ok", model=model)
 
 

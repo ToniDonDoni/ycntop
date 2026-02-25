@@ -7,7 +7,13 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .hn_client import HNClient
-from .llm_interest import DEFAULT_MAX_CALLS, get_llm_budget_state, reset_llm_budget, set_llm_insecure_ssl
+from .llm_interest import (
+    DEFAULT_MAX_CALLS,
+    get_llm_budget_state,
+    reset_llm_budget,
+    set_llm_expected_calls,
+    set_llm_insecure_ssl,
+)
 from .models import ArticleContent, HNStory, RankedStory
 from .ranker import rank_stories
 from .report import ReportBuilder
@@ -29,8 +35,9 @@ def run_pipeline(
     reset_llm_budget(DEFAULT_MAX_CALLS)
     client = client or HNClient()
     run_time = now or datetime.now(timezone.utc)
-    stories = client.fetch_recent_stories(hours=hours, max_items=top_n * 4)
+    stories = client.fetch_recent_stories(hours=hours)
     LOGGER.info("Fetched %s candidate stories", len(stories))
+    set_llm_expected_calls(len(stories))
 
     articles: Dict[int, ArticleContent] = {}
     for story in stories:
@@ -48,8 +55,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="YC News Curator (YC)")
     sub = parser.add_subparsers(dest="command", required=True)
     run_cmd = sub.add_parser("run", help="Execute the YC pipeline")
-    run_cmd.add_argument("--hours", type=int, default=24)
-    run_cmd.add_argument("--top", type=int, default=5)
+    run_cmd.add_argument("--hours", type=int, default=12)
+    run_cmd.add_argument("--top", type=int, default=20)
     run_cmd.add_argument(
         "--insecure-llm-ssl",
         action="store_true",

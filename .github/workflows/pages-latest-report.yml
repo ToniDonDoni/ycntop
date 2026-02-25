@@ -6,11 +6,11 @@ on:
       hours:
         description: "How many past hours to analyze (max 168 in app logic)"
         required: false
-        default: "24"
+        default: "12"
       top:
         description: "How many stories to include"
         required: false
-        default: "5"
+        default: "20"
       insecure_llm_ssl:
         description: "Disable TLS cert verification for OpenAI calls (debug only)"
         required: false

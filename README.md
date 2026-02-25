@@ -14,7 +14,7 @@ On each run, the system should:
 ## Main Output (HTML)
 
 Primary output files after each run:
-- `output/top5_YYYY-MM-DD.html` — dated report
+- `output/top20_YYYY-MM-DD.html` — dated report (when using defaults)
 - `output/latest.html` — always points to the most recent run
 
 The HTML page includes:
@@ -54,12 +54,12 @@ The HTML page includes:
 Execute the pipeline from the repo root:
 
 ```bash
-python -m src.main run --hours 24 --top 5
+python -m src.main run --hours 12 --top 20
 ```
 
 Key flags:
-- `--hours` limits candidates to the most recent N hours (default 24).
-- `--top` controls how many ranked results to emit (default 5).
+- `--hours` limits candidates to the most recent N hours (default 12).
+- `--top` controls how many ranked results to emit (default 20).
 - `--insecure-llm-ssl` disables TLS certificate verification only for OpenAI LLM requests in the current run (debug/emergency use only).
 
 Scoring blends Hacker News metadata (points, comments, freshness, title structure) with an LLM-based `personal_interest` signal inferred from each title. If `OPENAI_API_KEY` is present, the script calls OpenAI to score title-level interest and stores the LLM reason in score details. If no key is set, `personal_interest` is neutral (0) and ranking continues normally. The command never downloads article pages; summaries and rationales are derived purely from title/metadata so the run succeeds even if every external host blocks bots.
@@ -68,9 +68,9 @@ Scoring blends Hacker News metadata (points, comments, freshness, title structur
 
 Every successful run writes the following into `output/`:
 
-- `top5_YYYY-MM-DD.html` – dated HTML report with clickable article and HN links, score, summary, and “why selected” bullets.
-- `top5_YYYY-MM-DD.json` – structured data with the score breakdown, metadata, and per-item fields.
-- `top5_YYYY-MM-DD.md` – Markdown summary for quick sharing.
+- `top20_YYYY-MM-DD.html` – dated HTML report with clickable article and HN links, score, summary, and “why selected” bullets (when using defaults).
+- `top20_YYYY-MM-DD.json` – structured data with the score breakdown, metadata, and per-item fields (when using defaults).
+- `top20_YYYY-MM-DD.md` – Markdown summary for quick sharing (when using defaults).
 - `latest.html` – copy of the newest HTML run for easy bookmarking.
 
 ## Testing

@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import ssl
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List, Optional
 from urllib.error import URLError
@@ -16,6 +16,9 @@ LOGGER = logging.getLogger(__name__)
 HN_API_BASE = "https://hacker-news.firebaseio.com/v0"
 DEFAULT_TIMEOUT = 10
 MAX_WORKERS = 8
+# Do not stop on the first old item: newstories ordering is not strictly monotonic
+# by timestamp, so one old record can appear before still-valid fresh records.
+OLD_STREAK_EARLY_STOP = 25
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:135.0) "
     "Gecko/20100101 Firefox/135.0"
@@ -86,28 +89,62 @@ class HNClient:
         self,
         *,
         hours: int,
-        max_items: int,
+        max_items: Optional[int] = None,
         endpoints: Optional[List[str]] = None,
     ) -> List[HNStory]:
-        endpoints = endpoints or ["topstories", "newstories"]
+        endpoints = endpoints or ["newstories"]
         story_ids = self._load_story_id_pool(endpoints)
         if not story_ids:
             return []
 
         stories: List[HNStory] = []
-        cutoff = _utc_now() - timedelta(hours=hours)
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            future_map = {executor.submit(self._fetch_story, story_id): story_id for story_id in story_ids[: max_items * 4]}
-            for future in as_completed(future_map):
-                story = future.result()
-                if not story:
-                    continue
-                if story.time < cutoff:
-                    continue
-                stories.append(story)
-                if len(stories) >= max_items * 2:
-                    # Enough buffer for downstream filtering
+        scan_now = _utc_now()
+        cutoff = scan_now - timedelta(hours=hours)
+        ids_to_fetch = story_ids if max_items is None else story_ids[: max_items * 4]
+        old_streak = 0
+        processed = 0
+        newest_seen_time: Optional[datetime] = None
+        oldest_seen_time: Optional[datetime] = None
+        for story_id in ids_to_fetch:
+            story = self._fetch_story(story_id)
+            if not story:
+                continue
+            processed += 1
+            if newest_seen_time is None or story.time > newest_seen_time:
+                newest_seen_time = story.time
+            if oldest_seen_time is None or story.time < oldest_seen_time:
+                oldest_seen_time = story.time
+            oldest_age_h = (scan_now - oldest_seen_time).total_seconds() / 3600 if oldest_seen_time else 0.0
+            hours_to_cutoff = max(0.0, hours - oldest_age_h)
+            status = "fresh" if story.time >= cutoff else "old"
+            LOGGER.info(
+                "HN scan progress: processed=%s candidates=%s item_id=%s item_time=%s status=%s newest=%s oldest=%s (oldest_age_h=%.2f, to_cutoff_h=%.2f)",
+                processed,
+                len(stories),
+                story.id,
+                story.time.isoformat(),
+                status,
+                newest_seen_time.isoformat() if newest_seen_time else "n/a",
+                oldest_seen_time.isoformat() if oldest_seen_time else "n/a",
+                oldest_age_h,
+                hours_to_cutoff,
+            )
+            if story.time < cutoff:
+                old_streak += 1
+                if max_items is None and old_streak >= OLD_STREAK_EARLY_STOP:
+                    LOGGER.info(
+                        "Stopping HN scan early after %s consecutive old stories (< cutoff %s)",
+                        old_streak,
+                        cutoff.isoformat(),
+                    )
                     break
+                continue
+            old_streak = 0
+            stories.append(story)
+            if max_items is not None and len(stories) >= max_items * 2:
+                # Enough buffer for downstream filtering
+                break
+        stories.sort(key=lambda s: (s.score, s.descendants, s.time), reverse=True)
         return stories
 
     # Internal helpers -----------------------------------------------------------
@@ -152,11 +189,22 @@ class HNClient:
 
     def _get_json(self, url: str):
         request = Request(url, headers={"User-Agent": USER_AGENT})
+        LOGGER.info("HN API request: url=%s timeout=%ss", url, self.timeout)
+        started = time.perf_counter()
         try:
             with urlopen(request, timeout=self.timeout, context=self.ssl_context) as response:
                 charset = response.headers.get_content_charset() or "utf-8"
                 data = response.read().decode(charset)
+                elapsed_ms = (time.perf_counter() - started) * 1000
+                LOGGER.info("HN API response: url=%s elapsed_ms=%.1f", url, elapsed_ms)
                 return json.loads(data)
         except URLError as err:  # pragma: no cover - network defensive path
-            LOGGER.error("Network error while calling %s: %s", url, err)
+            elapsed_ms = (time.perf_counter() - started) * 1000
+            LOGGER.error(
+                "HN API error: url=%s timeout=%ss elapsed_ms=%.1f error=%s",
+                url,
+                self.timeout,
+                elapsed_ms,
+                err,
+            )
             raise
