@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .hn_client import HNClient
+from .llm_interest import DEFAULT_MAX_CALLS, get_llm_budget_state, reset_llm_budget
 from .models import ArticleContent, HNStory, RankedStory
 from .ranker import rank_stories
 from .report import ReportBuilder
@@ -23,6 +24,7 @@ def run_pipeline(
     report_builder: Optional[ReportBuilder] = None,
     now: Optional[datetime] = None,
 ) -> List[RankedStory]:
+    reset_llm_budget(DEFAULT_MAX_CALLS)
     client = client or HNClient()
     run_time = now or datetime.now(timezone.utc)
     stories = client.fetch_recent_stories(hours=hours, max_items=top_n * 4)
@@ -36,14 +38,14 @@ def run_pipeline(
     LOGGER.info("Ranked %s stories", len(ranked))
 
     report = report_builder or ReportBuilder(output_dir=Path("output"))
-    report.render(ranked, run_date=run_time)
+    report.render(ranked, run_date=run_time, requested_top=top_n, llm_budget=get_llm_budget_state())
     return ranked
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="YC News Curator (YYC)")
+    parser = argparse.ArgumentParser(description="YC News Curator (YC)")
     sub = parser.add_subparsers(dest="command", required=True)
-    run_cmd = sub.add_parser("run", help="Execute the YYC pipeline")
+    run_cmd = sub.add_parser("run", help="Execute the YC pipeline")
     run_cmd.add_argument("--hours", type=int, default=24)
     run_cmd.add_argument("--top", type=int, default=5)
     return parser

@@ -45,10 +45,17 @@ def test_ranker_skips_story_without_article():
     assert ranked[0].story.id == stories[0].id
 
 
-def test_ranker_includes_personal_interest_reason():
+def test_ranker_includes_personal_interest_reason(monkeypatch):
+    class _Fake:
+        score = 4.0
+        reason = "Interesting for systems engineers"
+        status = "ok"
+        model = "fake-model"
+
+    monkeypatch.setattr("src.scoring.score_title_with_llm", lambda title: _Fake())
     story = _story(10, score=200, comments=120)
     story.title = "Rust AI compiler performance benchmark?"
     articles = {story.id: _article(story.id, words=500)}
     ranked = rank_stories([story], articles, top_n=1)
     reasons = ranked[0].why_selected
-    assert any("Personal interest" in reason for reason in reasons)
+    assert any("LLM interest score" in reason for reason in reasons)

@@ -5,6 +5,8 @@ from typing import Dict, Iterable, List
 from .models import ArticleContent, HNStory, RankedStory, ScoreBreakdown
 from .scoring import score_story
 
+PERSONAL_INTEREST_REASON_THRESHOLD = 4.0
+
 
 def rank_stories(stories: Iterable[HNStory], articles: Dict[int, ArticleContent], *, top_n: int) -> List[RankedStory]:
     enriched = []
@@ -23,7 +25,6 @@ def rank_stories(stories: Iterable[HNStory], articles: Dict[int, ArticleContent]
 
 
 def _default_reasons(story: HNStory, score: ScoreBreakdown) -> list[str]:
-    reasons = []
     reasons: List[str] = []
     if story.score >= 150:
         reasons.append("Exceptional community interest (>=150 points)")
@@ -39,19 +40,21 @@ def _default_reasons(story: HNStory, score: ScoreBreakdown) -> list[str]:
     elif freshness <= 4:
         reasons.append("Still trending after a full day")
     personal_interest = score.components.get("personal_interest", 0)
-    if personal_interest >= 3 and len(reasons) < 3:
+    if personal_interest >= PERSONAL_INTEREST_REASON_THRESHOLD and len(reasons) < 3:
         reasons.append("Editorially interesting headline signal")
     if "?" in story.title and len(reasons) < 3:
         reasons.append("Question-style headline drives curiosity")
     pi = score.components.get("personal_interest", 0)
-    matches = score.details.get("personal_interest_keywords", []) if hasattr(score, "details") else []
+    llm_reason = score.details.get("llm_personal_interest_reason", "") if hasattr(score, "details") else ""
+    llm_status = score.details.get("llm_personal_interest_status", "") if hasattr(score, "details") else ""
     pi_reason = None
-    if pi >= 2.0:
-        if matches:
-            rendered = ", ".join(matches[:2])
-            pi_reason = f"Personal interest boost (keywords: {rendered})"
+    if pi >= PERSONAL_INTEREST_REASON_THRESHOLD:
+        if llm_reason:
+            status_suffix = f", status={llm_status}" if llm_status and llm_status != "ok" else ""
+            pi_reason = f"LLM interest score (+{pi:.2f}{status_suffix}): {llm_reason}"
         else:
-            pi_reason = "Personal interest boost from editorial heuristics"
+            status_suffix = f", status={llm_status}" if llm_status and llm_status != "ok" else ""
+            pi_reason = f"LLM interest score (+{pi:.2f}{status_suffix})"
         reasons.append(pi_reason)
     while len(reasons) < 2:
         reasons.append("Strong metadata-driven score vs peers")

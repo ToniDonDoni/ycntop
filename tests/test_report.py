@@ -22,7 +22,11 @@ def _ranked(idx: int) -> RankedStory:
         summary="summary",
         word_count=500,
     )
-    breakdown = ScoreBreakdown(total=150.0, components={"popularity": 100, "freshness": 48, "depth": 2})
+    breakdown = ScoreBreakdown(
+        total=150.0,
+        components={"popularity": 100, "freshness": 48, "depth": 2},
+        details={"llm_personal_interest_status": "no_api_key"},
+    )
     return RankedStory(rank=idx, story=story, article=article, score=breakdown, why_selected=["reason a", "reason b"])
 
 
@@ -30,16 +34,43 @@ def test_report_builder_creates_files(tmp_path: Path):
     builder = ReportBuilder(output_dir=tmp_path)
     ranked = [_ranked(i) for i in range(1, 3)]
     run_date = datetime(2024, 1, 2, tzinfo=timezone.utc)
-    builder.render(ranked, run_date=run_date)
+    requested_top = 10
+    builder.render(ranked, run_date=run_date, requested_top=requested_top)
     slug = run_date.strftime("%Y-%m-%d")
-    html = tmp_path / f"top5_{slug}.html"
+    html = tmp_path / f"top{requested_top}_{slug}.html"
     latest = tmp_path / "latest.html"
     assert html.exists()
-    assert (tmp_path / f"top5_{slug}.json").exists()
-    assert (tmp_path / f"top5_{slug}.md").exists()
+    assert (tmp_path / f"top{requested_top}_{slug}.json").exists()
+    assert (tmp_path / f"top{requested_top}_{slug}.md").exists()
     assert latest.exists()
     content = html.read_text()
-    assert "YYC Top 5" in content
+    assert "YC Top 10" in content
     assert "Why selected" in content
     latest_content = latest.read_text()
     assert "HN Thread" in latest_content
+    assert "LLM status: unavailable (OPENAI_API_KEY not set)" in latest_content
+
+
+def test_report_builder_shows_llm_available_status(tmp_path: Path):
+    builder = ReportBuilder(output_dir=tmp_path)
+    ranked_item = _ranked(1)
+    ranked_item.score.details["llm_personal_interest_status"] = "ok"
+    run_date = datetime(2024, 1, 2, tzinfo=timezone.utc)
+    builder.render([ranked_item], run_date=run_date, requested_top=3)
+    html = (tmp_path / f"top3_{run_date.strftime('%Y-%m-%d')}.html").read_text()
+    assert "LLM status: available (1/1 titles scored)" in html
+
+
+def test_report_builder_shows_llm_limit_note(tmp_path: Path):
+    builder = ReportBuilder(output_dir=tmp_path)
+    ranked_item = _ranked(1)
+    ranked_item.score.details["llm_personal_interest_status"] = "ok"
+    run_date = datetime(2024, 1, 2, tzinfo=timezone.utc)
+    builder.render(
+        [ranked_item],
+        run_date=run_date,
+        requested_top=10,
+        llm_budget={"max_calls": 110, "calls_used": 110, "limit_reached": 1},
+    )
+    html = (tmp_path / f"top10_{run_date.strftime('%Y-%m-%d')}.html").read_text()
+    assert "LLM call limit reached (110/110)" in html

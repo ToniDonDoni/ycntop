@@ -1,10 +1,10 @@
-# Task: Build YYC MVP with Executor + Reviewer Loop
+# Task: Build YC MVP with Executor + Reviewer Loop
 
 ## Workspace
-`/Users/doni/local/yc`
+current workspace (repository root)
 
 ## Objective
-Implement an MVP of **YC News Curator (YYC)** that collects Hacker News stories from the last 24 hours, ranks them by title-level signals only, and outputs top-5 results.
+Implement an MVP of **YC News Curator (YC)** that collects Hacker News stories from the last 24 hours, ranks them by title-level signals only, and outputs top-5 results.
 
 ## Scope (MVP)
 

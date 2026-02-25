@@ -47,7 +47,7 @@ def test_run_pipeline_does_not_fetch_articles(monkeypatch, tmp_path):
     assert called["fetch"] is False
 
     slug = run_time.strftime("%Y-%m-%d")
-    json_path = tmp_path / f"top5_{slug}.json"
+    json_path = tmp_path / f"top2_{slug}.json"
     payload = json.loads(json_path.read_text())
     assert payload["items"][0]["why_selected"]
     assert all("points" in item["summary"] for item in payload["items"])
