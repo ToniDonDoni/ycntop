@@ -12,6 +12,7 @@ from urllib.request import Request, urlopen
 
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 DEFAULT_MODEL = "gpt-4.1-mini"
+LLM_TIMEOUT_SECONDS = 25
 # Empirical cap: ~24h HN runs were around this range, so 110 avoids early cutoffs.
 DEFAULT_MAX_CALLS = 110
 LOGGER = logging.getLogger(__name__)
@@ -110,8 +111,17 @@ def score_title_with_llm(title: str) -> LLMInterestResult:
         method="POST",
     )
 
+    LOGGER.info(
+        "Calling OpenAI LLM scoring API (model=%s, timeout=%ss, call=%s/%s) for title %r",
+        model,
+        LLM_TIMEOUT_SECONDS,
+        _budget_calls_used,
+        _budget_max_calls,
+        title,
+    )
+
     try:
-        with urlopen(req, timeout=25, context=_get_llm_ssl_context()) as resp:
+        with urlopen(req, timeout=LLM_TIMEOUT_SECONDS, context=_get_llm_ssl_context()) as resp:
             body = json.loads(resp.read().decode("utf-8", errors="ignore"))
     except HTTPError as exc:
         try:
