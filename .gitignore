@@ -1,0 +1,16 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Build/test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local outputs
+output/
+*.log
