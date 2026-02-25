@@ -11,7 +11,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
-DEFAULT_MODEL = "gpt-4.1-mini"
+DEFAULT_MODEL = "gpt-5.2"
 LLM_TIMEOUT_SECONDS = 300
 # Empirical cap: ~24h HN runs were around this range, so 110 avoids early cutoffs.
 DEFAULT_MAX_CALLS = 110
