@@ -1,0 +1,75 @@
+name: Deploy Latest Report to Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "How many past hours to analyze (max 168 in app logic)"
+        required: false
+        default: "24"
+      top:
+        description: "How many stories to include"
+        required: false
+        default: "5"
+      insecure_llm_ssl:
+        description: "Disable TLS cert verification for OpenAI calls (debug only)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    if: github.actor == 'ToniDonDoni'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate latest report
+        run: |
+          ARGS="--hours ${{ github.event.inputs.hours }} --top ${{ github.event.inputs.top }}"
+          if [ "${{ github.event.inputs.insecure_llm_ssl }}" = "true" ]; then
+            ARGS="$ARGS --insecure-llm-ssl"
+          fi
+          python -m src.main run $ARGS
+
+      - name: Prepare Pages content
+        run: |
+          mkdir -p pages
+          cp output/latest.html pages/index.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./pages
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -87,6 +87,7 @@ pytest
 - `Manual Latest Report` workflow is manual (`Run workflow` button in GitHub Actions), runs on the branch selected in the UI, generates the report, and uploads artifacts including:
   - `output/latest.html`
   - dated `output/top*.html`, `output/top*.json`, `output/top*.md`
+- `Deploy Latest Report to Pages` workflow is manual and publishes `output/latest.html` to GitHub Pages as `index.html`.
 
 If you want LLM scoring in GitHub Actions, add repository secret `OPENAI_API_KEY`.
 
