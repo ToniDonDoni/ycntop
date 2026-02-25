@@ -10,7 +10,7 @@ class _StubHNClient:
     def __init__(self, stories):
         self._stories = stories
 
-    def fetch_recent_stories(self, *, hours, max_items):
+    def fetch_recent_stories(self, *, hours, max_items=None):
         return self._stories
 
 
