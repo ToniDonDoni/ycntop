@@ -22,6 +22,7 @@ permissions:
 
 jobs:
   build-latest-report:
+    if: github.actor == 'ToniDonDoni'
     runs-on: ubuntu-latest
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
