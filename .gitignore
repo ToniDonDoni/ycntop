@@ -1,16 +1,25 @@
-# Python cache
+# Python caches
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+
+# Test/cache artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Virtual environments
 .venv/
 venv/
 
-# Build/test artifacts
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Local outputs
+# Generated project artifacts
 output/
-*.log
+
+# Skill/orchestrator generated logs and notes
+task_with_review_skill-*.log.jsonl
+
+# OS/editor noise
+.DS_Store
