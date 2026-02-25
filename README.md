@@ -81,6 +81,15 @@ Run the bundled tests to validate recency filtering, ranking logic, pipeline beh
 pytest
 ```
 
+## GitHub Actions
+
+- `Tests` workflow runs `pytest -q` on every push and pull request.
+- `Manual Latest Report` workflow is manual (`Run workflow` button in GitHub Actions), runs on the branch selected in the UI, generates the report, and uploads artifacts including:
+  - `output/latest.html`
+  - dated `output/top*.html`, `output/top*.json`, `output/top*.md`
+
+If you want LLM scoring in GitHub Actions, add repository secret `OPENAI_API_KEY`.
+
 ## Troubleshooting
 
 - **Empty results** – typically caused by temporary HN API/network failures. Re-run later or extend `--hours`.
