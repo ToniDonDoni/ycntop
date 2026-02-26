@@ -45,6 +45,8 @@ def test_report_builder_creates_files(tmp_path: Path):
     assert latest.exists()
     content = html.read_text()
     assert "YC Top 10" in content
+    assert "Generated at:" in content
+    assert "2024-01-02 00:00:00 UTC (UTC)" in content
     assert "Why selected" in content
     latest_content = latest.read_text()
     assert "HN Thread" in latest_content
