@@ -2,6 +2,10 @@
 
 A project for selecting the top Hacker News stories from a recent time window (defaults: 12 hours, top 20).
 
+## Latest Summary
+
+- Live page (latest report): [https://tonidondoni.github.io/ycntop/](https://tonidondoni.github.io/ycntop/)
+
 ## Goal
 
 On each run, the system:
