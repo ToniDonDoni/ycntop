@@ -13,8 +13,8 @@ from urllib.request import Request, urlopen
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 DEFAULT_MODEL = "gpt-5.2"
 LLM_TIMEOUT_SECONDS = 300
-# Empirical cap: ~24h HN runs were around this range, so 110 avoids early cutoffs.
-DEFAULT_MAX_CALLS = 110
+# Upper bound for LLM scoring calls per run; keeps near-complete coverage without clipping candidates.
+DEFAULT_MAX_CALLS = 500
 LOGGER = logging.getLogger(__name__)
 _budget_max_calls = DEFAULT_MAX_CALLS
 _budget_calls_used = 0

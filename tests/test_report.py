@@ -70,10 +70,10 @@ def test_report_builder_shows_llm_limit_note(tmp_path: Path):
         [ranked_item],
         run_date=run_date,
         requested_top=10,
-        llm_budget={"max_calls": 110, "calls_used": 110, "limit_reached": 1},
+        llm_budget={"max_calls": 500, "calls_used": 500, "limit_reached": 1},
     )
     html = (tmp_path / f"top10_{run_date.strftime('%Y-%m-%d')}.html").read_text()
-    assert "LLM call limit reached (110/110)" in html
+    assert "LLM call limit reached (500/500)" in html
 
 
 def test_report_builder_escapes_untrusted_html_fields(tmp_path: Path):
