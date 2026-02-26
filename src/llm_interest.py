@@ -167,7 +167,6 @@ def _score_title_batch_with_llm(titles: List[str], *, api_key: str, model: str) 
         "input": prompt,
         "temperature": 0,
     }
-    LOGGER.info("LLM request payload (full): %s", json.dumps(payload, ensure_ascii=False))
     req = Request(
         OPENAI_RESPONSES_URL,
         data=json.dumps(payload).encode("utf-8"),
