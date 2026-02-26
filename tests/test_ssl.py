@@ -70,7 +70,7 @@ def test_llm_interest_uses_verified_ssl_by_default(monkeypatch):
             return False
 
         def read(self):
-            return b'{"output_text":"{\\"score\\": 5, \\"reason\\": \\"good\\"}"}'
+            return b'{"output_text":"[{\\"index\\":0,\\"score\\":5,\\"reason\\":\\"good\\"}]"}'
 
     calls = {}
     sentinel_context = object()
@@ -104,7 +104,7 @@ def test_llm_interest_uses_unverified_ssl_when_enabled(monkeypatch):
             return False
 
         def read(self):
-            return b'{"output_text":"{\\"score\\": 5, \\"reason\\": \\"good\\"}"}'
+            return b'{"output_text":"[{\\"index\\":0,\\"score\\":5,\\"reason\\":\\"good\\"}]"}'
 
     calls = {}
     sentinel_context = object()

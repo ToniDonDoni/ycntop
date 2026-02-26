@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Dict
 
-from .llm_interest import score_title_with_llm
+from .llm_interest import LLMInterestResult, score_title_with_llm
 from .models import HNStory, ScoreBreakdown
 
 
-def score_story(story: HNStory) -> ScoreBreakdown:
+def score_story(story: HNStory, *, llm_interest: LLMInterestResult | None = None) -> ScoreBreakdown:
     """Heuristic scoring that relies entirely on Hacker News metadata."""
 
     components: Dict[str, float] = {}
@@ -25,15 +25,15 @@ def score_story(story: HNStory) -> ScoreBreakdown:
     title_signal = _title_signal(story.title)
     components["title_signal"] = title_signal
 
-    llm_interest = score_title_with_llm(story.title)
-    personal_interest = llm_interest.score
+    llm_result = llm_interest if llm_interest is not None else score_title_with_llm(story.title)
+    personal_interest = llm_result.score
     components["personal_interest"] = personal_interest
 
     total = popularity + freshness + discussion_heat + title_signal + personal_interest
     details = {
-        "llm_personal_interest_reason": llm_interest.reason,
-        "llm_personal_interest_status": llm_interest.status,
-        "llm_model": llm_interest.model,
+        "llm_personal_interest_reason": llm_result.reason,
+        "llm_personal_interest_status": llm_result.status,
+        "llm_model": llm_result.model,
     }
     return ScoreBreakdown(total=total, components=components, details=details)
 

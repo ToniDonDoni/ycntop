@@ -52,7 +52,7 @@ def test_ranker_includes_personal_interest_reason(monkeypatch):
         status = "ok"
         model = "fake-model"
 
-    monkeypatch.setattr("src.scoring.score_title_with_llm", lambda title: _Fake())
+    monkeypatch.setattr("src.ranker.score_titles_with_llm_batch", lambda titles, batch_size: [_Fake() for _ in titles])
     story = _story(10, score=200, comments=120)
     story.title = "Rust AI compiler performance benchmark?"
     articles = {story.id: _article(story.id, words=500)}
