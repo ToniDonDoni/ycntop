@@ -150,7 +150,6 @@ def _score_title_batch_with_llm(titles: List[str], *, api_key: str, model: str) 
         "input": prompt,
         "temperature": 0,
     }
-    LOGGER.info("LLM request payload (full): %s", json.dumps(payload, ensure_ascii=False))
     req = Request(
         OPENAI_RESPONSES_URL,
         data=json.dumps(payload).encode("utf-8"),
@@ -164,7 +163,6 @@ def _score_title_batch_with_llm(titles: List[str], *, api_key: str, model: str) 
     try:
         with urlopen(req, timeout=LLM_TIMEOUT_SECONDS, context=_get_llm_ssl_context()) as resp:
             raw = resp.read().decode("utf-8", errors="ignore")
-            LOGGER.info("LLM raw response (full): %s", raw)
             body = json.loads(raw)
     except HTTPError as exc:
         try:

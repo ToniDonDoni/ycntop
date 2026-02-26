@@ -1,57 +1,45 @@
 # Ranking Strategy
 
-## What "best article" means
+## Objective
 
-A top-5 article should be:
-- substantive,
-- practically useful,
-- relevant to a tech/product/startup audience,
-- not clickbait,
-- ideally supported by HN community signals.
+Rank recent Hacker News stories using:
+- community traction signals from HN metadata,
+- recency signals,
+- title-level heuristic signal,
+- LLM personal-interest signal from titles.
 
-## Two-Stage Scoring
+## Inputs Per Story
 
-## Stage A: fast heuristics (low cost)
+- `score` (HN points)
+- `descendants` (HN comments)
+- `time` (story timestamp)
+- `title`
 
-Compute a baseline `base_score`:
-- `text_quality_score` (0-1): length + extraction quality.
-- `hn_signal_score` (0-1): normalized `points` and `comments`.
-- `freshness_score` (0-1): newer items score higher.
+## Score Components
 
-Example:
+- `popularity = score * 0.8 + descendants * 0.2`
+- `freshness = max(0, 24 - hours_old)`
+- `discussion_heat = min(20, descendants * 0.4)`
+- `title_signal` from simple title heuristics (length, punctuation, prefixes)
+- `personal_interest` from LLM title scoring (`0..8`)
 
-`base_score = 0.45 * text_quality_score + 0.35 * hn_signal_score + 0.20 * freshness_score`
+Total:
 
-Then optionally remove low-quality candidates (for example, bottom 30-40%).
+`total = popularity + freshness + discussion_heat + title_signal + personal_interest`
 
-## Stage B: LLM scoring (higher cost)
+## LLM Scoring Behavior
 
-For remaining candidates, the model evaluates:
-- `insight_score` (depth and usefulness of ideas),
-- `novelty_score` (how new/original),
-- `applicability_score` (practical actionability),
-- `credibility_score` (quality of evidence/argumentation).
+- Titles are sent in batches (default 20 titles per request).
+- Prompt requires strict JSON array output with objects:
+  - `index`
+  - `score`
+  - `reason`
+- Per-run budget limits how many titles can be scored by LLM (default 500).
+- Titles beyond budget are marked `limit_reached` and get neutral personal-interest score.
+- If `OPENAI_API_KEY` is missing, all titles get `no_api_key` status and neutral score.
 
-Final score:
+## Sorting and Selection
 
-`final_score = 0.40 * base_score + 0.60 * llm_score`
-
-where:
-
-`llm_score = 0.30 * insight + 0.25 * novelty + 0.30 * applicability + 0.15 * credibility`
-
-## Exclusion Rules
-
-Exclude stories if:
-- article text cannot be extracted;
-- extracted text is too short (for example, < 400 chars);
-- hard paywall/no readable content;
-- duplicate URL or near-duplicate content.
-
-## Explainability
-
-For each top-5 item, store:
-- numeric scores;
-- 2-3 reasons for selection;
-- a short summary.
-
+- Stories are sorted by `total` descending.
+- Top `N` (`--top`) are selected for the report.
+- `why_selected` contains 2-3 concise reasons derived from score components and thresholds.

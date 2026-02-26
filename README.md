@@ -1,14 +1,14 @@
 # YC News Curator (YC)
 
-A project for automatically selecting the 5 best Hacker News stories from the last 24 hours.
+A project for selecting the top Hacker News stories from a recent time window (defaults: 12 hours, top 20).
 
 ## Goal
 
-On each run, the system should:
+On each run, the system:
 - collect fresh stories from Hacker News;
-- analyze titles + HN metadata (points, comments, age) without fetching article pages;
-- score candidates using clear heuristics;
-- produce a top-5 list with short explanations grounded in metadata;
+- analyze titles + HN metadata (points, comments, age) without fetching external article pages;
+- score candidates with deterministic metadata signals plus an LLM title-interest signal;
+- produce a top-N list with short explanations grounded in metadata;
 - save results as an HTML page with clickable links (plus JSON/Markdown exports).
 
 ## Main Output (HTML)
@@ -18,13 +18,15 @@ Primary output files after each run:
 - `output/latest.html` — always points to the most recent run
 
 The HTML page includes:
-- top-5 ranked stories;
+- top-N ranked stories (based on `--top`);
 - clickable story title linking to the original article;
 - clickable `HN discussion` link;
 - score, short summary, and selection reasons.
+- generation timestamp in UTC.
 
 ## Documentation Included
 
+- Documentation index (root map): `docs/README.md`
 - Concept: `docs/01_concept.md`
 - Architecture and modules: `docs/02_architecture.md`
 - Scoring and ranking strategy: `docs/03_ranking_strategy.md`
@@ -32,6 +34,7 @@ The HTML page includes:
 - Risks and limitations: `docs/05_risks_and_limits.md`
 - Tech stack and dependencies: `docs/06_tech_stack.md`
 - Output artifact specification: `docs/07_output_spec.md`
+- Current runtime decisions: `docs/08_runtime_decisions.md`
 
 ## Setup
 
@@ -63,6 +66,18 @@ Key flags:
 - `--insecure-llm-ssl` disables TLS certificate verification only for OpenAI LLM requests in the current run (debug/emergency use only).
 
 Scoring blends Hacker News metadata (points, comments, freshness, title structure) with an LLM-based `personal_interest` signal inferred from each title. If `OPENAI_API_KEY` is present, the script calls OpenAI to score title-level interest and stores the LLM reason in score details. If no key is set, `personal_interest` is neutral (0) and ranking continues normally. The command never downloads article pages; summaries and rationales are derived purely from title/metadata so the run succeeds even if every external host blocks bots.
+
+## Current Runtime Logic
+
+- HN source endpoint for candidate scanning: `newstories`.
+- Candidate detail endpoint: `item/<id>.json` per story id.
+- IDs are deduplicated.
+- Time-window filtering is applied from `item.time` against `now - --hours`.
+- Scan strategy is recency-first over `newstories` with early stop after a configured streak of old items.
+- LLM title scoring is batched (default batch size: 20 titles/request).
+- LLM per-run budget is capped (default max calls: 500 scored titles per run).
+- If budget is exceeded, remaining titles are marked `limit_reached` and get neutral personal-interest score.
+- HTML is safely escaped for untrusted external fields before rendering.
 
 ## Generated Artifacts
 

@@ -1,47 +1,37 @@
 # Architecture
 
-## Data Flow
+## End-to-End Flow
 
-1. **HN Fetcher**
-   - Pulls stories from the last 24 hours.
-   - Source: HN HTML pages (`news`, `newest`) or API.
+1. `src/main.py` parses CLI args (`--hours`, `--top`, `--insecure-llm-ssl`) and orchestrates one run.
+2. `src/hn_client.py` fetches `newstories.json`, deduplicates ids, then fetches `item/<id>.json` for each id.
+3. Stories are filtered to:
+   - `type == story`
+   - has `url`
+   - `time >= now - hours`
+4. The scanner stops early after a streak of consecutive old items (configurable constant) to avoid over-scanning.
+5. `src/main.py` builds metadata-only `ArticleContent` records (no external page downloads).
+6. `src/ranker.py` requests batched LLM title-interest scores and computes final ranking.
+7. `src/report.py` writes HTML/JSON/Markdown outputs and `output/latest.html`.
 
-2. **Candidate Builder**
-   - Normalizes fields:
-     - `hn_id`, `title`, `hn_url`, `external_url`, `age_hours`, `points`, `comments`.
+## Data Sources
 
-3. **Content Fetcher**
-   - Downloads each external URL (timeouts, retries, user-agent).
+- Hacker News ids: `https://hacker-news.firebaseio.com/v0/newstories.json`
+- Hacker News item details: `https://hacker-news.firebaseio.com/v0/item/<id>.json`
+- OpenAI Responses API for LLM title scoring.
 
-4. **Content Extractor**
-   - Extracts readable article text (removes nav/ads/noise).
+## Core Design Decisions
 
-5. **Scoring Engine**
-   - Stage A (heuristics): text quality, length, HN signals.
-   - Stage B (LLM): content quality, practical value, novelty.
+- Metadata-only pipeline: does not fetch external article bodies.
+- LLM scoring is batched to reduce API round-trips (default batch size 20).
+- LLM budget is capped per run (default 500 scored titles).
+- TLS verification is enabled by default; insecure LLM TLS is opt-in only via CLI flag.
+- HTML report escapes untrusted fields before insertion.
 
-6. **Ranker**
-   - Combines scores and selects top-5.
+## Main Modules
 
-7. **Reporter**
-   - Writes `output/top5_YYYY-MM-DD.md` and `output/top5_YYYY-MM-DD.json`.
-
-## Suggested Modules
-
-- `src/hn_client.py` — fetch HN stories.
-- `src/article_fetcher.py` — fetch external pages.
-- `src/article_parser.py` — extract article text.
-- `src/scoring.py` — heuristics + LLM scoring.
-- `src/ranker.py` — final top-N selection.
-- `src/report.py` — report generation.
-- `src/main.py` — CLI and orchestration.
-
-## Configuration
-
-`.env` / environment variables:
-- `OPENAI_API_KEY`
-- `MODEL_NAME` (e.g., `gpt-5-mini`)
-- `REQUEST_TIMEOUT_SEC`
-- `MAX_ARTICLES`
-- `TOP_N`
-
+- `src/hn_client.py`: HN API access, filtering, scan progress logging.
+- `src/llm_interest.py`: batched title scoring with budget and status handling.
+- `src/scoring.py`: deterministic metadata scoring + injected LLM signal.
+- `src/ranker.py`: ranking pipeline and selection reasons.
+- `src/report.py`: HTML/JSON/MD rendering.
+- `src/main.py`: CLI and orchestration.
