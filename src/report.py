@@ -44,6 +44,7 @@ class ReportBuilder:
         *,
         llm_budget: Optional[Dict[str, int]] = None,
     ) -> str:
+        generated_utc = run_date.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         rows = []
         for item in ranked:
             safe_url = escape(item.story.url, quote=True)
@@ -66,6 +67,7 @@ class ReportBuilder:
             "h2{margin-bottom:0.2rem;}ul{margin-top:0.2rem;}footer{margin-top:2rem;color:#555;}"
             "</style></head><body>"
             f"<h1>YC Top {requested_top} - {run_date.strftime('%Y-%m-%d')}</h1>"
+            f"<p><strong>Generated at:</strong> {generated_utc} (UTC)</p>"
             + "".join(rows)
             + f"<footer><strong>{self._llm_status_line(ranked, llm_budget=llm_budget)}</strong></footer>"
             + "</body></html>"

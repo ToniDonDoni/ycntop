@@ -2,71 +2,52 @@
 
 ## Primary Files
 
-- `output/top5_YYYY-MM-DD.html` (primary user-facing report)
+- `output/top{N}_YYYY-MM-DD.html` (dated HTML report)
 - `output/latest.html` (latest run shortcut, overwritten each run)
-- `output/top5_YYYY-MM-DD.json` (structured data export)
-- `output/top5_YYYY-MM-DD.md` (text export)
+- `output/top{N}_YYYY-MM-DD.json` (structured export)
+- `output/top{N}_YYYY-MM-DD.md` (markdown export)
 
-## HTML Report (Primary)
+`N` is the runtime `--top` value (default: `20`).
+
+## HTML Report
 
 Contains:
-1. Run date and time.
-2. Summary counts: found, processed, excluded.
-3. Top-5 entries with:
-   - rank,
-   - clickable title to original article,
-   - clickable `HN discussion` URL,
+
+1. Report title (`YC Top {N}`) and run date.
+2. Exact generation timestamp in UTC.
+3. Ranked entries with:
+   - clickable external article URL,
+   - clickable HN discussion URL,
    - final score,
-   - short summary,
-   - `why_selected` (2-3 bullets).
+   - metadata-derived summary,
+   - 2-3 `why_selected` bullets.
+4. LLM status footer:
+   - availability/no-key/error state,
+   - limit note when per-run LLM cap is reached.
 
 ## Markdown Report
 
 Contains:
-1. Run date and time.
-2. Summary: found, processed, excluded counts.
-3. Top-5 entries, each with:
-   - rank,
-   - title,
-   - external URL,
+
+1. Report title and date.
+2. Per-ranked-story section:
+   - title + external URL,
    - HN URL,
-   - final score,
-   - short summary,
-   - `why_selected` (2-3 bullets).
+   - score,
+   - summary,
+   - selection reasons.
 
-## JSON Schema (simplified)
+## JSON Report
 
-```json
-{
-  "run_at": "2026-02-23T22:00:00Z",
-  "window_hours": 24,
-  "totals": {
-    "candidates": 120,
-    "fetched": 98,
-    "parsed": 90,
-    "ranked": 78,
-    "selected": 5
-  },
-  "top": [
-    {
-      "rank": 1,
-      "hn_id": 123,
-      "title": "...",
-      "external_url": "https://...",
-      "hn_url": "https://news.ycombinator.com/item?id=123",
-      "scores": {
-        "base": 0.78,
-        "llm": 0.82,
-        "final": 0.80
-      },
-      "summary": "...",
-      "why_selected": ["...", "..."]
-    }
-  ]
-}
-```
+Top-level fields:
 
-## Optional Artifacts
+- `generated_at` (UTC ISO timestamp)
+- `items` (ranked story list)
 
-- `output/logs/run_YYYY-MM-DD_HHMM.log`
-- `output/cache/*.html`
+Per-item fields include:
+
+- rank/title/article_url/hn_url
+- total score + score components + score details
+- summary
+- why_selected
+- metadata (author, points, comments, story time, word_count, fetch_status)
