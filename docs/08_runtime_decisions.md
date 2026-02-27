@@ -27,15 +27,18 @@ This document captures the current implementation decisions used in production r
 - Per-run scored-title cap: `500`.
 - If the cap is reached, remaining titles are not sent to LLM.
 - If key is missing/API fails, ranking continues with neutral LLM contribution.
+- `--no-llm` fully disables LLM calls for the run and keeps ranking metadata-only.
 
 ## Security and Reliability
 
 - TLS verification is on by default.
 - Insecure TLS for LLM is explicit opt-in via CLI flag only.
 - HTML report escapes all untrusted fields before rendering.
+- Unit tests remove `OPENAI_API_KEY` by default to avoid accidental real API calls.
 
 ## Reporting
 
 - Outputs: HTML, JSON, Markdown.
 - `output/latest.html` always points to the most recent run.
 - HTML report includes exact generation timestamp in UTC.
+- HTML report initializes mobile/desktop layout mode and exposes a toggle button for manual switching.
