@@ -2,6 +2,10 @@
 
 A project for selecting the top Hacker News stories from a recent time window (defaults: 12 hours, top 20).
 
+## Latest Summary
+
+- Live page (latest report): [https://tonidondoni.github.io/ycntop/](https://tonidondoni.github.io/ycntop/)
+
 ## Goal
 
 On each run, the system:
@@ -64,6 +68,7 @@ Key flags:
 - `--hours` limits candidates to the most recent N hours (default 12).
 - `--top` controls how many ranked results to emit (default 20).
 - `--insecure-llm-ssl` disables TLS certificate verification only for OpenAI LLM requests in the current run (debug/emergency use only).
+- `--no-llm` disables all OpenAI calls and runs metadata-only ranking (useful for fast layout/testing runs).
 
 Scoring blends Hacker News metadata (points, comments, freshness, title structure) with an LLM-based `personal_interest` signal inferred from each title. If `OPENAI_API_KEY` is present, the script calls OpenAI to score title-level interest and stores the LLM reason in score details. If no key is set, `personal_interest` is neutral (0) and ranking continues normally. The command never downloads article pages; summaries and rationales are derived purely from title/metadata so the run succeeds even if every external host blocks bots.
 
@@ -77,7 +82,9 @@ Scoring blends Hacker News metadata (points, comments, freshness, title structur
 - LLM title scoring is batched (default batch size: 20 titles/request).
 - LLM per-run budget is capped (default max calls: 500 scored titles per run).
 - If budget is exceeded, remaining titles are marked `limit_reached` and get neutral personal-interest score.
+- If `--no-llm` is enabled, all titles are marked `disabled` and get neutral personal-interest score.
 - HTML is safely escaped for untrusted external fields before rendering.
+- HTML includes responsive layout behavior with mobile/desktop initialization and a mode toggle button.
 
 ## Generated Artifacts
 
@@ -95,6 +102,9 @@ Run the bundled tests to validate recency filtering, ranking logic, pipeline beh
 ```bash
 pytest
 ```
+
+Test harness note:
+- Tests clear `OPENAI_API_KEY` by default to prevent accidental real OpenAI calls during unit tests.
 
 ## GitHub Actions
 

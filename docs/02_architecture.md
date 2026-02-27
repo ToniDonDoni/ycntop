@@ -2,7 +2,7 @@
 
 ## End-to-End Flow
 
-1. `src/main.py` parses CLI args (`--hours`, `--top`, `--insecure-llm-ssl`) and orchestrates one run.
+1. `src/main.py` parses CLI args (`--hours`, `--top`, `--insecure-llm-ssl`, `--no-llm`) and orchestrates one run.
 2. `src/hn_client.py` fetches `newstories.json`, deduplicates ids, then fetches `item/<id>.json` for each id.
 3. Stories are filtered to:
    - `type == story`
@@ -24,8 +24,10 @@
 - Metadata-only pipeline: does not fetch external article bodies.
 - LLM scoring is batched to reduce API round-trips (default batch size 20).
 - LLM budget is capped per run (default 500 scored titles).
+- LLM can be fully disabled per run via `--no-llm` for layout/debug runs.
 - TLS verification is enabled by default; insecure LLM TLS is opt-in only via CLI flag.
 - HTML report escapes untrusted fields before insertion.
+- HTML layout is responsive with runtime mobile/desktop mode initialization and a user toggle.
 
 ## Main Modules
 

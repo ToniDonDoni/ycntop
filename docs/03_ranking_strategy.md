@@ -37,6 +37,7 @@ Total:
 - Per-run budget limits how many titles can be scored by LLM (default 500).
 - Titles beyond budget are marked `limit_reached` and get neutral personal-interest score.
 - If `OPENAI_API_KEY` is missing, all titles get `no_api_key` status and neutral score.
+- If `--no-llm` is enabled, all titles get `disabled` status and neutral score.
 
 ## Sorting and Selection
 

@@ -23,7 +23,12 @@ Contains:
    - 2-3 `why_selected` bullets.
 4. LLM status footer:
    - availability/no-key/error state,
+   - disabled state for `--no-llm`,
    - limit note when per-run LLM cap is reached.
+5. Responsive layout behavior:
+   - mobile/desktop mode initialized on load,
+   - user toggle button to switch density/layout mode,
+   - preference persisted in browser storage.
 
 ## Markdown Report
 
