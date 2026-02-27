@@ -23,6 +23,7 @@ _budget_limit_reached = False
 _llm_insecure_ssl = False
 _llm_ssl_context: Optional[ssl.SSLContext] = None
 _run_expected_calls: Optional[int] = None
+_llm_enabled = True
 
 
 @dataclass
@@ -39,6 +40,11 @@ def set_llm_insecure_ssl(enabled: bool) -> None:
     global _llm_insecure_ssl, _llm_ssl_context
     _llm_insecure_ssl = bool(enabled)
     _llm_ssl_context = None
+
+
+def set_llm_enabled(enabled: bool) -> None:
+    global _llm_enabled
+    _llm_enabled = bool(enabled)
 
 
 def _build_ssl_context(*, insecure: bool) -> ssl.SSLContext:
@@ -90,6 +96,17 @@ def score_titles_with_llm_batch(titles: List[str], *, batch_size: int = DEFAULT_
     global _budget_calls_used, _budget_limit_reached
     if not titles:
         return []
+
+    if not _llm_enabled:
+        return [
+            LLMInterestResult(
+                score=0.0,
+                reason="LLM disabled by runtime flag",
+                status="disabled",
+                model=DEFAULT_MODEL,
+            )
+            for _ in titles
+        ]
 
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     model = os.getenv("OPENAI_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL

@@ -11,6 +11,7 @@ from .llm_interest import (
     DEFAULT_MAX_CALLS,
     get_llm_budget_state,
     reset_llm_budget,
+    set_llm_enabled,
     set_llm_expected_calls,
     set_llm_insecure_ssl,
 )
@@ -26,11 +27,13 @@ def run_pipeline(
     hours: int,
     top_n: int,
     *,
+    no_llm: bool = False,
     insecure_llm_ssl: bool = False,
     client: Optional[HNClient] = None,
     report_builder: Optional[ReportBuilder] = None,
     now: Optional[datetime] = None,
 ) -> List[RankedStory]:
+    set_llm_enabled(not no_llm)
     set_llm_insecure_ssl(insecure_llm_ssl)
     reset_llm_budget(DEFAULT_MAX_CALLS)
     client = client or HNClient()
@@ -62,6 +65,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Disable TLS certificate verification only for OpenAI LLM requests in this run.",
     )
+    run_cmd.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="Disable all LLM scoring calls (use metadata-only ranking for fast layout/testing runs).",
+    )
     return parser
 
 
@@ -69,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command == "run":
-        run_pipeline(hours=args.hours, top_n=args.top, insecure_llm_ssl=args.insecure_llm_ssl)
+        run_pipeline(hours=args.hours, top_n=args.top, no_llm=args.no_llm, insecure_llm_ssl=args.insecure_llm_ssl)
         return 0
     parser.print_help()
     return 1

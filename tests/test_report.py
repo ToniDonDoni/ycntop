@@ -47,6 +47,10 @@ def test_report_builder_creates_files(tmp_path: Path):
     assert "YC Top 10" in content
     assert "Generated at:" in content
     assert "2024-01-02 00:00:00 UTC (UTC)" in content
+    assert "@media (max-width:760px)" in content
+    assert "id=\"layoutToggle\"" in content
+    assert "matchMedia('(max-width:760px)')" in content
+    assert "localStorage.getItem(KEY)" in content
     assert "Why selected" in content
     latest_content = latest.read_text()
     assert "HN Thread" in latest_content
@@ -61,6 +65,16 @@ def test_report_builder_shows_llm_available_status(tmp_path: Path):
     builder.render([ranked_item], run_date=run_date, requested_top=3)
     html = (tmp_path / f"top3_{run_date.strftime('%Y-%m-%d')}.html").read_text()
     assert "LLM status: available (1/1 titles scored)" in html
+
+
+def test_report_builder_shows_llm_disabled_status(tmp_path: Path):
+    builder = ReportBuilder(output_dir=tmp_path)
+    ranked_item = _ranked(1)
+    ranked_item.score.details["llm_personal_interest_status"] = "disabled"
+    run_date = datetime(2024, 1, 2, tzinfo=timezone.utc)
+    builder.render([ranked_item], run_date=run_date, requested_top=3)
+    html = (tmp_path / f"top3_{run_date.strftime('%Y-%m-%d')}.html").read_text()
+    assert "LLM status: disabled (--no-llm)" in html
 
 
 def test_report_builder_shows_llm_limit_note(tmp_path: Path):
