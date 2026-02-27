@@ -62,14 +62,31 @@ class ReportBuilder:
                 f"</article>"
             )
         html = (
-            f"<html><head><meta charset=\"utf-8\"><title>YC Top {requested_top}</title>"
-            "<style>body{font-family:Arial;margin:2rem;}article{margin-bottom:1.5rem;}"
-            "h2{margin-bottom:0.2rem;}ul{margin-top:0.2rem;}footer{margin-top:2rem;color:#555;}"
+            f"<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+            f"<title>YC Top {requested_top}</title>"
+            "<style>:root{--bg:#f5f7fb;--card:#fff;--text:#112233;--muted:#4c6279;--line:#d8e1eb;--link:#0a66cc;}"
+            "*{box-sizing:border-box;}body{font-family:Arial,sans-serif;margin:0;background:var(--bg);color:var(--text);line-height:1.55;}"
+            ".topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.7rem 1rem;background:#fff;border-bottom:1px solid var(--line);}"
+            ".topbar-title{font-size:.92rem;font-weight:700;color:var(--muted);}#layoutToggle{appearance:none;border:1px solid var(--line);background:#fff;color:var(--text);padding:.4rem .68rem;border-radius:.55rem;font-size:.84rem;cursor:pointer;}"
+            ".content{max-width:980px;margin:0 auto;padding:1.25rem;}"
+            "article{margin-bottom:1rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.95rem;}"
+            "h1{margin:0 0 .5rem;}h2{margin:.1rem 0 .35rem;line-height:1.35;overflow-wrap:anywhere;}"
+            "ul{margin-top:.2rem;padding-left:1.1rem;}a{color:var(--link);}footer{max-width:980px;margin:1rem auto;padding:0 1.25rem;color:var(--muted);}"
+            "body.compact .content{max-width:640px;}body.compact p,body.compact li{font-size:.97rem;}"
+            "@media (max-width:760px){.topbar{padding:.6rem .75rem;}.topbar-title{font-size:.84rem;}"
+            ".content{max-width:94vw;padding:.75rem;}article{padding:.8rem;margin-bottom:.75rem;}h1{font-size:1.34rem;}h2{font-size:1.05rem;}p,li{font-size:.98rem;}footer{max-width:94vw;padding:0 .75rem;}}"
             "</style></head><body>"
+            "<header class=\"topbar\"><div class=\"topbar-title\">YC Layout</div><button id=\"layoutToggle\" type=\"button\">Compact mode</button></header>"
+            "<main class=\"content\">"
             f"<h1>YC Top {requested_top} - {run_date.strftime('%Y-%m-%d')}</h1>"
             f"<p><strong>Generated at:</strong> {generated_utc} (UTC)</p>"
             + "".join(rows)
+            + "</main>"
             + f"<footer><strong>{self._llm_status_line(ranked, llm_budget=llm_budget)}</strong></footer>"
+            + "<script>(function(){var KEY='yc_layout_mode';var btn=document.getElementById('layoutToggle');if(!btn)return;"
+            "function setMode(mode){document.body.classList.toggle('compact',mode==='compact');btn.textContent=mode==='compact'?'Comfortable mode':'Compact mode';}"
+            "var saved=localStorage.getItem(KEY);var isMobile=window.matchMedia('(max-width:760px)').matches;var mode=saved||(isMobile?'compact':'comfortable');"
+            "setMode(mode);btn.addEventListener('click',function(){var next=document.body.classList.contains('compact')?'comfortable':'compact';setMode(next);localStorage.setItem(KEY,next);});})();</script>"
             + "</body></html>"
         )
         return html
@@ -110,6 +127,8 @@ class ReportBuilder:
 
         if not statuses:
             return "LLM status: unavailable (no LLM scoring metadata)" + budget_note
+        if all(status == "disabled" for status in statuses):
+            return "LLM status: disabled (--no-llm)" + budget_note
         if any(status == "ok" for status in statuses):
             ok_count = sum(1 for s in statuses if s == "ok")
             return f"LLM status: available ({ok_count}/{len(statuses)} titles scored)" + budget_note
