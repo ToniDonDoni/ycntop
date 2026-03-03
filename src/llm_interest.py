@@ -165,7 +165,6 @@ def _score_title_batch_with_llm(titles: List[str], *, api_key: str, model: str) 
     payload: Dict[str, Any] = {
         "model": model,
         "input": prompt,
-        "temperature": 0,
     }
     req = Request(
         OPENAI_RESPONSES_URL,
