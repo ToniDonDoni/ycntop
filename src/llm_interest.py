@@ -11,7 +11,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
-DEFAULT_MODEL = "gpt-5.2"
+DEFAULT_MODEL = "gpt-5.1-mini"
 LLM_TIMEOUT_SECONDS = 300
 DEFAULT_BATCH_SIZE = 20
 # Upper bound for LLM scoring calls per run; keeps near-complete coverage without clipping candidates.
