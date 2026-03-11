@@ -8,6 +8,26 @@ from typing import Dict, List, Optional
 
 from .models import RankedStory
 
+FAVICON_SVG = """<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg2" x1="32" y1="24" x2="220" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7E8"/>
+      <stop offset="1" stop-color="#FFE1B8"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg2)"/>
+  <rect x="28" y="34" width="200" height="188" rx="28" fill="#FFFDF8" stroke="#E7C89A" stroke-width="6"/>
+  <rect x="52" y="66" width="98" height="16" rx="8" fill="#1C2A39"/>
+  <rect x="52" y="98" width="152" height="12" rx="6" fill="#6D7B88"/>
+  <rect x="52" y="122" width="138" height="12" rx="6" fill="#6D7B88"/>
+  <rect x="52" y="146" width="146" height="12" rx="6" fill="#6D7B88"/>
+  <rect x="52" y="170" width="102" height="12" rx="6" fill="#6D7B88"/>
+  <path d="M174 54L208 88H186C179.373 88 174 82.6274 174 76V54Z" fill="#FF7A00"/>
+  <circle cx="196" cy="182" r="22" fill="#FF7A00"/>
+  <path d="M195.5 171V183.5L204 188" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+"""
+
 
 class ReportBuilder:
     def __init__(self, *, output_dir: Path) -> None:
@@ -27,6 +47,7 @@ class ReportBuilder:
         json_path = self.output_dir / f"top{requested_top}_{date_slug}.json"
         md_path = self.output_dir / f"top{requested_top}_{date_slug}.md"
         latest = self.output_dir / "latest.html"
+        favicon_path = self.output_dir / "favicon.svg"
 
         html_content = self._render_html(ranked, run_date, requested_top, llm_budget=llm_budget)
         md_content = self._render_md(ranked, run_date, requested_top)
@@ -35,6 +56,7 @@ class ReportBuilder:
         json_path.write_text(self._render_json(ranked), encoding="utf-8")
         md_path.write_text(md_content, encoding="utf-8")
         latest.write_text(html_content, encoding="utf-8")
+        favicon_path.write_text(FAVICON_SVG, encoding="utf-8")
 
     def _render_html(
         self,
@@ -45,6 +67,7 @@ class ReportBuilder:
         llm_budget: Optional[Dict[str, int]] = None,
     ) -> str:
         generated_utc = run_date.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        favicon_href = escape("favicon.svg", quote=True)
         rows = []
         for item in ranked:
             safe_url = escape(item.story.url, quote=True)
@@ -64,6 +87,7 @@ class ReportBuilder:
         html = (
             f"<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
             f"<title>YC Top {requested_top}</title>"
+            f"<link rel=\"icon\" type=\"image/svg+xml\" href=\"{favicon_href}\">"
             "<style>:root{--bg:#f5f7fb;--card:#fff;--text:#112233;--muted:#4c6279;--line:#d8e1eb;--link:#0a66cc;}"
             "*{box-sizing:border-box;}body{font-family:Arial,sans-serif;margin:0;background:var(--bg);color:var(--text);line-height:1.55;}"
             ".topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.7rem 1rem;background:#fff;border-bottom:1px solid var(--line);}"
