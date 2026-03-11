@@ -39,12 +39,16 @@ def test_report_builder_creates_files(tmp_path: Path):
     slug = run_date.strftime("%Y-%m-%d")
     html = tmp_path / f"top{requested_top}_{slug}.html"
     latest = tmp_path / "latest.html"
+    favicon = tmp_path / "favicon.svg"
     assert html.exists()
     assert (tmp_path / f"top{requested_top}_{slug}.json").exists()
     assert (tmp_path / f"top{requested_top}_{slug}.md").exists()
     assert latest.exists()
+    assert favicon.exists()
     content = html.read_text()
     assert "YC Top 10" in content
+    assert 'rel="icon"' in content
+    assert 'href="favicon.svg"' in content
     assert "Generated at:" in content
     assert "2024-01-02 00:00:00 UTC (UTC)" in content
     assert "@media (max-width:760px)" in content
@@ -55,6 +59,7 @@ def test_report_builder_creates_files(tmp_path: Path):
     latest_content = latest.read_text()
     assert "HN Thread" in latest_content
     assert "LLM status: unavailable (OPENAI_API_KEY not set)" in latest_content
+    assert "<svg" in favicon.read_text()
 
 
 def test_report_builder_shows_llm_available_status(tmp_path: Path):
