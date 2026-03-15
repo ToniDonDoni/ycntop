@@ -53,6 +53,7 @@ jobs:
         with:
           name: latest-report-${{ github.run_number }}
           path: |
+            output/favicon.svg
             output/latest.html
             output/top*.html
             output/top*.json

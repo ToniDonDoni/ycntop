@@ -61,6 +61,7 @@ jobs:
         run: |
           mkdir -p pages
           cp output/latest.html pages/index.html
+          cp output/favicon.svg pages/favicon.svg
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
